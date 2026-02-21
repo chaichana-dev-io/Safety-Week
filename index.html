@@ -10,8 +10,8 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: 'Kanit', sans-serif; background: #f8f9fc; color: #1a237e; margin: 0; }
-    .main-app { max-width: 500px; margin: auto; min-height: 100vh; background: #f8f9fc; position: relative; }
+    body { font-family: 'Kanit', sans-serif; background: #f8f9fc; color: #1a237e; margin: 0; padding: 0; }
+    .main-app { max-width: 500px; margin: auto; min-height: 100vh; background: #f8f9fc; position: relative; padding-bottom: 50px; }
     .header-banner { background: #1a237e; color: white; padding: 35px 20px; text-align: center; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; }
     .header-banner h2 { font-weight: 800; letter-spacing: 1px; margin: 0; font-size: 1.8rem; }
     .header-banner p { opacity: 0.8; margin-top: 5px; font-size: 0.9rem; }
@@ -26,18 +26,20 @@
     .profile-info { background: white; border-radius: 25px; padding: 18px 20px; margin-bottom: 20px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.03); border: 1px solid #f0f2f8; }
     .target-card { background: white; border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; border: 1px solid #eef0f7; margin-bottom: 20px; }
     .target-label { background: #0d6efd; color: white; padding: 3px 15px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; display: inline-block; margin-bottom: 10px; }
-    .target-name { font-size: 2.2rem; font-weight: 800; color: #0d6efd; margin: 0; }
+    .target-name { font-size: 1.8rem; font-weight: 800; color: #0d6efd; margin: 0; }
     
     .base-grid-wrapper { display: flex; justify-content: center; margin: 25px 0; }
-    .base-grid { display: grid; grid-template-columns: repeat(3, 50px); gap: 15px; }
-    .base-item { width: 50px; height: 50px; border-radius: 12px; background: #eef0f7; color: #bdc3d7; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; border: 3px solid transparent; }
+    .base-grid { display: grid; grid-template-columns: repeat(3, 60px); gap: 15px; }
+    .base-item { width: 60px; height: 60px; border-radius: 15px; background: #eef0f7; color: #bdc3d7; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.5rem; border: 3px solid transparent; transition: 0.3s; }
     .base-item.done { background: #198754 !important; color: #ffc107 !important; border: none; }
     .base-item.next { background: #eef0f7; color: #1a237e; border-color: #ffc107; animation: glowing-yellow 1.5s infinite; }
     
     @keyframes glowing-yellow { 0% { box-shadow: 0 0 5px #ffc107; } 50% { box-shadow: 0 0 18px #ffc107; } 100% { box-shadow: 0 0 5px #ffc107; } }
 
     #reader { width: 100%; border-radius: 25px; overflow: hidden; display: none; margin-bottom: 20px; }
-    .btn-action-main { background: #1a237e; color: white; border-radius: 18px; padding: 18px; width: 100%; font-weight: 700; font-size: 1.1rem; border: none; box-shadow: 0 10px 20px rgba(26,35,126,0.15); }
+    .btn-action-main { background: #1a237e; color: white; border-radius: 18px; padding: 18px; width: 100%; font-weight: 700; font-size: 1.1rem; border: none; box-shadow: 0 10px 20px rgba(26,35,126,0.15); transition: 0.3s; }
+    .btn-action-main:active { transform: scale(0.98); }
+    .btn-action-success { background: #198754; }
     .btn-logout { display: block; text-align: center; color: #bdc3d7; text-decoration: none; margin-top: 25px; font-size: 0.9rem; cursor: pointer; }
   </style>
 </head>
@@ -55,16 +57,16 @@
       <h4 class="fw-bold mb-4">ยืนยันตัวตนพนักงาน</h4>
       <input type="number" id="inputEmpId" class="form-control input-pill mb-3" placeholder="รหัสพนักงาน 6 หลัก" onkeypress="if(event.key==='Enter') loginProcess()">
       <button class="btn btn-primary btn-pill shadow-sm" onclick="loginProcess()">เข้าสู่ระบบ</button>
-      <p class="text-muted mt-4 small">หากยังไม่ได้เช็คอินหน้างาน จะไม่สามารถเข้าสู่ระบบได้</p>
+      <p class="text-muted mt-4 small">กรุณาเช็คอินที่จุดลงทะเบียนก่อนเข้าสู่ระบบ</p>
     </div>
   </div>
 
   <div id="dashboard-page">
     <div class="profile-info">
        <div class="fw-bold" style="font-size: 1.1rem;">
-         <span id="pNameDisplay">ชื่อ นามสกุล</span> <span id="pIdDisplay" class="text-primary"> [000000]</span>
+         <span id="pNameDisplay">...</span> <span id="pIdDisplay" class="text-primary"></span>
        </div>
-       <div id="pDeptDisplay" class="small text-muted mt-1">แผนก / ฝ่าย</div>
+       <div id="pDeptDisplay" class="small text-muted mt-1">...</div>
     </div>
 
     <div class="target-card">
@@ -97,41 +99,45 @@
 </div>
 
 <script>
-  // วาง URL ของ Google Apps Script (Web App) ที่นี่
-  const API_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"; 
-  let scanner = null, activeUser = null;
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyLoAQtuS68azNGJLuIHYI4Cuah8QCUaR7uI6AnOooGKQQRazSEiIDj0wteQdYBfmBy/exec";
+  let activeUser = null;
+  let scanner = null;
 
-  async function callAPI(payload) {
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      mode: 'no-cors', // สำหรับ GitHub ข้าม CORS เบื้องต้น
-      body: JSON.stringify(payload)
-    });
-    // หมายเหตุ: mode 'no-cors' จะไม่อ่าน response กลับมาได้ 
-    // แนะนำให้ใช้ Google Apps Script แบบอนุญาต CORS หรือใช้ Proxy ถ้าต้องการผลลัพธ์ละเอียด
-    // แต่สำหรับคำสั่งแบบ google.script.run เดิม ให้ใช้โค้ดชุดล่างนี้แทนถ้ายังรันบน Apps Script
+  // ฟังก์ชันคุยกับ Backend (GitHub -> Google Sheets)
+  async function callBackend(data) {
+    try {
+      const response = await fetch(WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+      return await response.json();
+    } catch (err) {
+      console.error(err);
+      throw new Error("ไม่สามารถติดต่อเซิร์ฟเวอร์ได้");
+    }
   }
 
-  // --- ฟังก์ชันจำลอง google.script.run สำหรับกรณีใช้บน Google Apps Script โดยตรง ---
-  // นายสามารถสลับไปใช้ fetch() ได้หากต้องการรันจาก GitHub จริงๆ
-  const run = google.script.run; 
-
-  function loginProcess() {
+  async function loginProcess() {
     const idValue = document.getElementById('inputEmpId').value;
     if(!idValue) return;
-    Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    Swal.fire({ title: 'กำลังเข้าสู่ระบบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    run.withSuccessHandler(res => {
+    try {
+      const res = await callBackend({ action: 'getEmployeeStatus', empId: idValue });
       Swal.close();
-      if(res && !res.error) {
+      
+      if(res && res.success) {
         activeUser = res;
         buildDashboard();
       } else if(res && res.error === "not_checked_in") {
-        Swal.fire({ icon: 'error', title: 'ยังไม่ได้เช็คอิน!', text: 'กรุณาเช็คอินที่จุดลงทะเบียนก่อนครับ' });
+        Swal.fire('ยังไม่ได้เช็คอิน', 'กรุณาเช็คอินที่จุดลงทะเบียนเพื่อเปิดสิทธิ์เข้าใช้งาน', 'error');
       } else {
-        Swal.fire({ icon: 'warning', title: 'ไม่พบข้อมูล', text: 'ตรวจสอบรหัสพนักงานอีกครั้ง' });
+        Swal.fire('ไม่พบข้อมูล', 'โปรดตรวจสอบรหัสพนักงาน หรือติดต่อเจ้าหน้าที่', 'warning');
       }
-    }).getEmployeeStatus(idValue);
+    } catch (err) {
+      Swal.fire('การเชื่อมต่อผิดพลาด', 'กรุณาตรวจสอบอินเทอร์เน็ตของนาย', 'error');
+    }
   }
 
   function buildDashboard() {
@@ -147,20 +153,21 @@
     let targetBaseId = "";
 
     if (doneCount === 9) {
-      // พนักงานผ่านครบแล้ว
+      // เคส: ผ่านครบทุกฐาน
       document.getElementById('targetLabel').style.display = 'none';
       document.getElementById('nextBaseLabel').innerText = "ยินดีด้วยคุณผ่านครบทุกฐานแล้ว";
-      document.getElementById('nextBaseLabel').style.fontSize = "1.5rem";
       document.getElementById('nextBaseLabel').className = "target-name text-success";
-      document.getElementById('nextBaseId').innerText = "ขอบคุณที่เข้าร่วมกิจกรรม";
+      document.getElementById('nextBaseId').innerText = "ภารกิจเสร็จสิ้น!";
       document.getElementById('mainBtn').innerHTML = '<i class="bi bi-patch-check-fill me-2"></i> สร้างใบประกาศ (PDF)';
+      document.getElementById('mainBtn').classList.add('btn-action-success');
       targetBaseId = "FINISH";
     } else {
-      // ยังไม่ครบ
+      // เคส: ยังไม่ครบ
       targetBaseId = doneCount === 0 ? activeUser.startBase : "Base" + (doneCount + 1);
-      document.getElementById('nextBaseLabel').innerText = targetBaseId.replace("Base", "ฐาน ");
+      document.getElementById('nextBaseLabel').innerText = targetBaseId.replace("Base", "ฐานที่ ");
       document.getElementById('nextBaseId').innerText = "ID: " + targetBaseId;
       document.getElementById('mainBtn').innerHTML = '<i class="bi bi-camera-fill me-2"></i> สแกน QR ฐานกิจกรรม';
+      document.getElementById('mainBtn').classList.remove('btn-action-success');
     }
 
     document.getElementById('progressCount').innerText = doneCount + "/9";
@@ -195,52 +202,72 @@
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
         closeCamera();
         askBasePassword(txt);
-      });
+      }).catch(err => Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'));
     } else { closeCamera(); }
   }
 
   function closeCamera() {
-    if(scanner) scanner.stop().then(() => { document.getElementById('reader').style.display = 'none'; });
+    if(scanner && scanner.isScanning) {
+      scanner.stop().then(() => { document.getElementById('reader').style.display = 'none'; });
+    } else {
+      document.getElementById('reader').style.display = 'none';
+    }
   }
 
-  function askBasePassword(baseId) {
-    Swal.fire({
-      title: 'กรุณาใส่รหัสผ่านฐาน',
+  async function askBasePassword(baseId) {
+    const { value: password } = await Swal.fire({
+      title: 'รหัสผ่านฐาน ' + baseId.replace("Base", ""),
       input: 'password',
-      inputAttributes: { autocapitalize: 'off' },
+      inputPlaceholder: 'กรอกรหัสผ่านจากกรรมการ',
       showCancelButton: true,
       confirmButtonText: 'ยืนยัน',
       cancelButtonText: 'ยกเลิก'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-        run.withSuccessHandler(res => {
-          if(res.status === 'success') {
-            Swal.fire({ icon: 'success', title: 'ผ่านฐานสำเร็จ!', timer: 2000, showConfirmButton: false }).then(() => loginProcess());
-          } else {
-            Swal.fire('ผิดพลาด', res.message, 'error');
-          }
-        }).recordBaseScan(activeUser.id, baseId, result.value);
-      }
     });
+
+    if (password) {
+      Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        const res = await callBackend({ 
+          action: 'recordBaseScan', 
+          empId: activeUser.id, 
+          baseId: baseId, 
+          password: password 
+        });
+        
+        if(res.status === 'success') {
+          Swal.fire({ icon: 'success', title: 'ผ่านฐานสำเร็จ!', timer: 2000, showConfirmButton: false }).then(() => loginProcess());
+        } else {
+          Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาสอบถามกรรมการประจำฐานอีกครั้ง', 'error');
+        }
+      } catch (e) {
+        Swal.fire('Error', 'บันทึกไม่สำเร็จ', 'error');
+      }
+    }
   }
 
-  function generateCertificate() {
+  async function generateCertificate() {
     Swal.fire({
-      title: 'ยืนยันข้อมูล',
-      text: `ต้องการสร้างใบประกาศชื่อ: ${activeUser.name} หรือไม่?`,
+      title: 'ยืนยันการสร้างใบประกาศ',
+      text: "ระบบจะสร้างไฟล์ PDF ในชื่อของคุณ",
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'ยืนยัน',
+      confirmButtonText: 'สร้างไฟล์',
       cancelButtonText: 'ยกเลิก'
-    }).then((res) => {
-      if(res.isConfirmed) {
-        Swal.fire({ title: 'กำลังสร้างใบประกาศ...', didOpen: () => Swal.showLoading() });
-        run.withSuccessHandler(r => {
-          if(r.success) {
-            Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: 'สร้างใบประกาศเรียบร้อย' }).then(() => window.open(r.url, '_blank'));
-          } else { Swal.fire('ล้มเหลว', r.message, 'error'); }
-        }).generateCertificate(activeUser.id);
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        Swal.fire({ title: 'กำลังสร้าง PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        try {
+          const res = await callBackend({ action: 'generateCertificate', empId: activeUser.id });
+          if(res.success) {
+            Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: 'สร้างใบประกาศเรียบร้อยแล้ว' }).then(() => {
+              window.open(res.url, '_blank');
+            });
+          } else {
+            Swal.fire('ไม่สำเร็จ', res.message, 'error');
+          }
+        } catch (e) {
+          Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเพื่อสร้าง PDF ได้', 'error');
+        }
       }
     });
   }
@@ -250,6 +277,7 @@
     document.getElementById('inputEmpId').value = '';
     document.getElementById('dashboard-page').style.display = 'none';
     document.getElementById('login-page').style.display = 'block';
+    document.getElementById('subHeaderText').innerText = "กรุณาเข้าสู่ระบบเพื่อเริ่มภารกิจ";
     if(scanner) closeCamera();
   }
 </script>
