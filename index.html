@@ -104,26 +104,22 @@
   let scanner = null;
 
   // ฟังก์ชันคุยกับ Backend (GitHub -> Google Sheets)
-  async function callBackend(data) {
+ async function callBackend(data) {
   try {
-    // ใช้ URLSearchParams หรือส่งเป็น text/plain เพื่อไม่ให้เกิด Pre-flight CORS
-    const response = await fetch(WEB_APP_URL, {
-      method: "POST",
-      mode: "no-cors", // <--- สำคัญ: ปรับเป็น no-cors 
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: JSON.stringify(data)
+    // สร้าง URL พร้อมพารามิเตอร์ (เช่น ?action=login&empId=123456)
+    const params = new URLSearchParams(data).toString();
+    const targetUrl = `${WEB_APP_URL}?${params}`;
+
+    const response = await fetch(targetUrl, {
+      method: "GET", // เปลี่ยนเป็น GET
+      mode: "cors"   // ลองใช้ cors หรือถ้าไม่ได้ให้เอาบรรทัดนี้ออก
     });
 
-    // หมายเหตุ: mode 'no-cors' จะทำให้เราอ่าน response.json() ไม่ได้ 
-    // ถ้าต้องการอ่านค่าตอบกลับ นายต้องใช้วิธีเปลี่ยนกลับมาใช้ google.script.run 
-    // หรือต้อง Deploy Web App ให้เป็น Public แบบสุดๆ 
-    
-    // แต่ถ้าจะเอาให้ชัวร์และอ่านผลลัพธ์ได้บน GitHub นายต้องเปลี่ยนไปใช้ Redirect
-    return { status: 'success' }; // จำลองว่าสำเร็จ เพราะ no-cors อ่านค่าตอบกลับไม่ได้
+    if (!response.ok) throw new Error("Network response was not ok");
+    return await response.json();
   } catch (err) {
-    throw new Error("การเชื่อมต่อมีปัญหา");
+    console.error("Fetch Error:", err);
+    throw err;
   }
 }
 
