@@ -9,58 +9,31 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <style>
     :root { --navy: #1a237e; --blue-light: #3b82f6; --bg-gray: #f4f7fe; }
-    body { font-family: 'Kanit', sans-serif; background-color: var(--bg-gray); color: #333; }
-    
-    /* Header & Navigation */
+    body { font-family: 'Kanit', sans-serif; background-color: var(--bg-gray); }
     .header-section { background: var(--navy); color: white; padding: 40px 0 80px 0; text-align: center; }
-    .header-section h2 { font-weight: 700; letter-spacing: 1px; }
-    
     .nav-container { margin-top: -45px; display: flex; justify-content: center; }
     .nav-pills { background: white; padding: 8px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-    .nav-pills .nav-link { 
-      border-radius: 40px; color: #666; padding: 12px 25px; font-weight: 600; border: none; transition: 0.3s;
-    }
+    .nav-pills .nav-link { border-radius: 40px; color: #666; padding: 12px 25px; font-weight: 600; border: none; }
     .nav-pills .nav-link.active { background-color: var(--navy) !important; color: white !important; }
-    
-    /* Cards & Stats */
     .main-card { border-radius: 35px; border: none; box-shadow: 0 15px 45px rgba(0,0,0,0.05); background: white; margin-top: 30px; }
-    .stat-box { 
-      background: white; border-radius: 25px; padding: 20px; border: 1px solid #edf2f7; text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: 0.3s;
-    }
-    .stat-label { font-size: 0.75rem; color: #a0aec0; background: #f1f5f9; padding: 2px 12px; border-radius: 10px; }
-    .stat-value { font-size: 2.2rem; font-weight: 700; color: var(--navy); font-family: 'Inter', sans-serif; }
-
-    /* Circular Progress & Tags */
-    .progress-circle {
-      width: 120px; height: 120px; border-radius: 50%;
-      background: conic-gradient(var(--blue-light) var(--p), #edf2f7 0);
-      display: flex; align-items: center; justify-content: center; margin: 20px auto;
-      position: relative;
-    }
-    .progress-circle::before {
-      content: ""; position: absolute; width: 100px; height: 100px; background: white; border-radius: 50%;
-    }
-    .progress-text { position: relative; font-size: 1.2rem; font-weight: 700; color: #333; }
-    
+    .stat-box { background: white; border-radius: 25px; padding: 15px; border: 1px solid #edf2f7; text-align: center; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--navy); font-family: 'Inter'; }
+    .progress-circle { width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(var(--blue-light) var(--p), #edf2f7 0); display: flex; align-items: center; justify-content: center; margin: 20px auto; position: relative; }
+    .progress-circle::before { content: ""; position: absolute; width: 100px; height: 100px; background: white; border-radius: 50%; }
+    .progress-text { position: relative; font-size: 1.2rem; font-weight: 700; }
     .next-base-pill { background: #e2f9e1; color: #2d6a4f; padding: 10px 25px; border-radius: 15px; font-weight: 600; display: inline-block; }
-
-    /* Inputs & Buttons */
     .input-group-custom { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 5px 5px 5px 20px; display: flex; align-items: center; }
     .input-group-custom input { border: none; outline: none; width: 100%; font-size: 1.1rem; }
     .btn-action { background: var(--blue-light); color: white; border-radius: 15px; padding: 12px 30px; border: none; font-weight: 600; }
-    
-    /* Table AAA */
-    .table-aaa tr { cursor: pointer; transition: 0.2s; border-radius: 15px; }
-    .table-aaa tr:hover { background-color: #f8faff; }
-    .table-aaa td { padding: 15px; border-bottom: 1px solid #f1f5f9; }
+    .mode-card { cursor: pointer; transition: 0.2s; }
+    .active-mode { border: 2px solid var(--blue-light) !important; background-color: #f0f7ff !important; }
+    #canvas { width: 100%; border-radius: 20px; display: none; background: #000; }
+    .locked { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
   </style>
 </head>
 <body>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyM1HtJEAG3qSCHPiX4diy9D_fZRjUa6dCcFgZCWa0j3qRLNJvu4nalzPgkDJANzoNn/exec"; 
-  </script>
+  <script>const API_URL = "https://script.google.com/macros/s/AKfycbyM1HtJEAG3qSCHPiX4diy9D_fZRjUa6dCcFgZCWa0j3qRLNJvu4nalzPgkDJANzoNn/exec";</script>
 
   <div class="header-section">
     <h2>STAFF PORTAL</h2>
@@ -70,43 +43,36 @@
   <div class="container">
     <div class="nav-container">
       <ul class="nav nav-pills" id="staffTabs">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#recordTab"><i class="bi bi-qr-code-scan me-2"></i>บันทึกเวลา</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#editTab"><i class="bi bi-pencil-square me-2"></i>แก้ไข</button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#recordTab" onclick="resetAll()"><i class="bi bi-qr-code-scan me-2"></i>บันทึกเวลา</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#monitorTab" onclick="updateStats()"><i class="bi bi-grid-3x3-gap me-2"></i>Monitor</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#editTab" onclick="resetEdit()"><i class="bi bi-pencil-square me-2"></i>แก้ไข</button></li>
       </ul>
     </div>
 
     <div class="tab-content pb-5">
       <div class="tab-pane fade show active" id="recordTab">
         <div class="card main-card p-4">
-          <div class="row g-3 mb-4">
-            <div class="col-6">
-              <div id="btnIn" class="mode-card border p-4 rounded-4 text-center cursor-pointer" onclick="setMode('checkin')">
-                <i class="bi bi-box-arrow-in-right fs-1 text-primary"></i><div class="mt-2 fw-bold">CHECK-IN</div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div id="btnOut" class="mode-card border p-4 rounded-4 text-center cursor-pointer" onclick="setMode('checkout')">
-                <i class="bi bi-box-arrow-left fs-1 text-primary"></i><div class="mt-2 fw-bold">CHECK-OUT</div>
-              </div>
-            </div>
+          <div class="row g-3 mb-4 text-center">
+            <div class="col-6"><div id="btnIn" class="mode-card border p-4 rounded-4" onclick="setMode('checkin')"><i class="bi bi-box-arrow-in-right fs-1 text-primary"></i><div class="mt-2 fw-bold">CHECK-IN</div></div></div>
+            <div class="col-6"><div id="btnOut" class="mode-card border p-4 rounded-4" onclick="setMode('checkout')"><i class="bi bi-box-arrow-left fs-1 text-primary"></i><div class="mt-2 fw-bold">CHECK-OUT</div></div></div>
           </div>
-          <div id="recordAction" class="locked">
-             <canvas id="canvas" class="w-100 rounded-4 mb-3" style="display:none;"></canvas>
-             <button id="scanBtn" class="btn btn-action w-100 mb-3" onclick="startCamera()"><i class="bi bi-camera me-2"></i>เปิดกล้องสแกน</button>
-             <div class="input-group-custom">
-               <input type="text" id="recordId" placeholder="ระบุเลข หรือ Reg ID">
-               <button id="recordSubmitBtn" class="btn-action bg-dark" onclick="submitRecord()">บันทึก</button>
-             </div>
+          <div id="recordAction" class="locked text-center">
+            <canvas id="canvas" class="mb-3"></canvas>
+            <button id="scanBtn" class="btn btn-action w-100 mb-2" onclick="startCamera()">เปิดกล้องสแกน</button>
+            <button id="stopBtn" class="btn btn-danger w-100 mb-3 rounded-4" style="display:none;" onclick="stopCamera()">ยกเลิกการสแกน</button>
+            <div class="input-group-custom">
+              <input type="text" id="recordId" placeholder="รหัสพนักงาน หรือ Reg ID">
+              <button id="recordSubmitBtn" class="btn-action bg-dark" onclick="submitRecord()">บันทึก</button>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="tab-pane fade" id="monitorTab">
-        <div class="row row-cols-3 g-3 mt-2" id="statGrid"></div>
+        <div class="row row-cols-3 g-2 mt-2" id="statGrid"></div>
         <div class="card main-card p-4">
           <div class="input-group-custom mb-4">
-            <input type="text" id="monId" placeholder="กรอกรหัสพนักงาน">
+            <input type="text" id="monId" placeholder="รหัสพนักงาน (AAA ดูทั้งหมด)">
             <button id="monBtn" class="btn-action" onclick="getMonitor()">ค้นหา</button>
           </div>
           <div id="monResult"></div>
@@ -114,23 +80,22 @@
       </div>
 
       <div class="tab-pane fade" id="editTab">
-        <div class="card main-card p-4 text-center">
-            <div id="searchBox">
-                <div class="input-group-custom mb-3">
-                    <input type="text" id="editId" placeholder="ค้นหารหัสพนักงานเพื่อแก้ไข">
-                    <button id="editSearchBtn" class="btn-action" onclick="searchUser()">ค้นหา</button>
-                </div>
+        <div class="card main-card p-4">
+          <div id="searchBox" class="input-group-custom mb-3">
+            <input type="text" id="editId" placeholder="ค้นหารหัสพนักงาน">
+            <button id="editSearchBtn" class="btn-action" onclick="searchUser()">ค้นหา</button>
+          </div>
+          <div id="editForm" class="d-none">
+            <input type="hidden" id="rowNum">
+            <div class="mb-3"><label class="small text-muted">ชื่อ-นามสกุล</label><input type="text" id="nameBox" class="form-control rounded-3 border-0 bg-light p-3"></div>
+            <div class="row mb-3">
+              <div class="col-6"><label class="small text-muted">แผนก</label><input type="text" id="deptBox" class="form-control rounded-3 border-0 bg-light p-3"></div>
+              <div class="col-6"><label class="small text-muted">ฝ่าย</label><input type="text" id="sectBox" class="form-control rounded-3 border-0 bg-light p-3"></div>
             </div>
-            <div id="editForm" class="d-none text-start">
-                <input type="hidden" id="rowNum">
-                <label class="small text-muted mb-1">ชื่อ-นามสกุล</label>
-                <input type="text" id="nameBox" class="form-control rounded-3 mb-3 p-3 border-0 bg-light">
-                <div class="row">
-                    <div class="col-6"><label class="small text-muted mb-1">แผนก</label><input type="text" id="deptBox" class="form-control rounded-3 mb-3 p-3 border-0 bg-light"></div>
-                    <div class="col-6"><label class="small text-muted mb-1">ฝ่าย</label><input type="text" id="sectBox" class="form-control rounded-3 mb-3 p-3 border-0 bg-light"></div>
-                </div>
-                <button id="editSaveBtn" class="btn btn-action w-100" onclick="saveEdit()">อัปเดตข้อมูล</button>
-            </div>
+            <div class="mb-4"><label class="small text-muted">อีเมล</label><input type="email" id="emailBox" class="form-control rounded-3 border-0 bg-light p-3"></div>
+            <button id="editSaveBtn" class="btn btn-action w-100" onclick="saveEdit()">บันทึกข้อมูลทั้งหมด</button>
+            <button class="btn btn-link w-100 text-muted mt-2" onclick="resetEdit()">ยกเลิก (ESC)</button>
+          </div>
         </div>
       </div>
     </div>
@@ -141,51 +106,66 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    let currentMode = null;
     let video = document.createElement("video");
-    let canvasElement = document.getElementById("canvas");
-    let canvas = canvasElement.getContext("2d");
-    let scanning = false;
+    let canvas = document.getElementById("canvas").getContext("2d");
+    let currentMode = null, scanning = false;
+
+    // ระบบ Keyboard (Enter / Esc)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const active = document.querySelector('.tab-pane.active').id;
+        if (active === 'recordTab') submitRecord();
+        if (active === 'monitorTab') getMonitor();
+        if (active === 'editTab') document.getElementById('editForm').classList.contains('d-none') ? searchUser() : saveEdit();
+      }
+      if (e.key === 'Escape') resetAll();
+    });
 
     function setMode(mode) {
       currentMode = mode;
-      document.querySelectorAll('.mode-card').forEach(el => el.classList.remove('border-primary', 'bg-light'));
-      document.getElementById(mode === 'checkin' ? 'btnIn' : 'btnOut').classList.add('border-primary', 'bg-light');
+      document.getElementById('btnIn').className = 'mode-card border p-4 rounded-4' + (mode==='checkin'?' active-mode':'');
+      document.getElementById('btnOut').className = 'mode-card border p-4 rounded-4' + (mode==='checkout'?' active-mode':'');
       document.getElementById('recordAction').classList.remove('locked');
-    }
-
-    async function callAPI(payload, btnId) {
-      const btn = btnId ? document.getElementById(btnId) : null;
-      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; }
-      try {
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const res = await response.json();
-        if (btn) { btn.disabled = false; btn.innerHTML = btn.id === 'recordSubmitBtn' ? 'บันทึก' : 'ค้นหา'; }
-        return res;
-      } catch (err) { return null; }
+      document.getElementById('recordId').focus();
     }
 
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        scanning = true; canvasElement.style.display = "block";
-        video.srcObject = stream; video.setAttribute("playsinline", true); video.play();
+        scanning = true; video.srcObject = stream; video.setAttribute("playsinline", true); video.play();
+        document.getElementById('canvas').style.display = 'block';
+        document.getElementById('scanBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'block';
         requestAnimationFrame(tick);
       } catch (e) { Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'); }
     }
 
+    function stopCamera() {
+      scanning = false; if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+      document.getElementById('canvas').style.display = 'none';
+      document.getElementById('scanBtn').style.display = 'block';
+      document.getElementById('stopBtn').style.display = 'none';
+    }
+
     function tick() {
       if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
-        canvasElement.height = video.videoHeight; canvasElement.width = video.videoWidth;
-        canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-        let code = jsQR(canvas.getImageData(0, 0, canvasElement.width, canvasElement.height).data, canvasElement.width, canvasElement.height);
-        if (code) { 
-          document.getElementById('recordId').value = code.data; 
-          scanning = false; video.srcObject.getTracks().forEach(t => t.stop()); canvasElement.style.display = "none";
-          submitRecord(); 
-        }
+        let el = document.getElementById('canvas');
+        el.height = video.videoHeight; el.width = video.videoWidth;
+        canvas.drawImage(video, 0, 0, el.width, el.height);
+        let code = jsQR(canvas.getImageData(0, 0, el.width, el.height).data, el.width, el.height);
+        if (code) { document.getElementById('recordId').value = code.data; stopCamera(); submitRecord(); }
       }
       if (scanning) requestAnimationFrame(tick);
+    }
+
+    async function callAPI(p, b) {
+      const btn = document.getElementById(b);
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+      try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) });
+        btn.disabled = false; btn.innerHTML = b === 'recordSubmitBtn' ? 'บันทึก' : 'ค้นหา';
+        return await res.json();
+      } catch (e) { btn.disabled = false; return null; }
     }
 
     async function submitRecord() {
@@ -201,60 +181,44 @@
       const res = await fetch(`${API_URL}?action=getStats`);
       const s = await res.json();
       let html = '';
-      for (let i = 1; i <= 9; i++) {
-        html += `<div class="col"><div class="stat-box"><span class="stat-label">ฐาน ${i}</span><div class="stat-value">${s["Base"+i] || 0}</div></div></div>`;
-      }
+      for (let i = 1; i <= 9; i++) html += `<div class="col"><div class="stat-box"><div class="small text-muted">ฐาน ${i}</div><div class="stat-value">${s["Base"+i] || 0}</div></div></div>`;
       document.getElementById('statGrid').innerHTML = html;
     }
 
-    async function getMonitor(targetId = null) {
-      let id = targetId || document.getElementById('monId').value.trim();
+    async function getMonitor(tid = null) {
+      let id = tid || document.getElementById('monId').value.trim();
       if (!id) return;
-      Swal.fire({ title: 'กำลังดึงข้อมูล...', didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังค้นหา...', didOpen: () => Swal.showLoading() });
       const r = await callAPI({ action: 'monitor', id: id }, 'monBtn');
       Swal.close();
-      
-      let html = '';
+      if (!r) return Swal.fire('Error', 'ไม่พบข้อมูล', 'warning');
+      let h = '';
       if (r.type === 'AAA') {
-        html = `<div class="table-responsive"><table class="table table-aaa"><thead><tr class="small text-muted"><th>รายชื่อ</th><th class="text-end">ความคืบหน้า</th></tr></thead><tbody>`;
-        r.list.forEach(p => {
-          html += `<tr onclick="getMonitor('${p.id}')">
-            <td><div class="fw-bold">${p.name}</div><small class="text-muted">${p.id}</small></td>
-            <td class="text-end fw-bold">${p.progress}/9</td>
-          </tr>`;
-        });
-        html += `</tbody></table></div>`;
-      } else if (r.type === 'single') {
-        const pPercent = Math.round((r.progress / r.total) * 100);
-        html = `<div class="text-center">
-          <h4 class="fw-bold mb-4">${r.name}</h4>
-          <div class="progress-circle" style="--p:${pPercent}%"><div class="progress-text">${r.progress} / ${r.total}</div></div>
-          <div class="mt-4"><div class="next-base-pill">สถานีถัดไป: ${r.nextBase}</div></div>
-        </div>`;
+        h = '<table class="table small"><tbody>' + r.list.map(p => `<tr onclick="getMonitor('${p.id}')"><td>${p.name}<br><small>${p.id}</small></td><td class="text-end fw-bold">${p.progress}/9</td></tr>`).join('') + '</tbody></table>';
+      } else {
+        h = `<div class="text-center"><h4 class="fw-bold">${r.name}</h4><div class="progress-circle" style="--p:${Math.round(r.progress/r.total*100)}%"><div class="progress-text">${r.progress}/${r.total}</div></div><div class="next-base-pill mt-3">สถานีถัดไป: ${r.nextBase}</div></div>`;
       }
-      document.getElementById('monResult').innerHTML = html;
-      document.getElementById('monId').value = id; // Update input field if clicked from AAA
+      document.getElementById('monResult').innerHTML = h;
+      document.getElementById('monId').value = id;
     }
 
     async function searchUser() {
-      let id = document.getElementById('editId').value.trim();
-      const r = await callAPI({ action: 'searchUser', id: id }, 'editSearchBtn');
+      const r = await callAPI({ action: 'searchUser', id: document.getElementById('editId').value }, 'editSearchBtn');
       if (r) {
-        document.getElementById('rowNum').value = r.row;
-        document.getElementById('nameBox').value = r.name;
-        document.getElementById('deptBox').value = r.dept;
-        document.getElementById('sectBox').value = r.sect;
+        ['rowNum','nameBox','deptBox','sectBox','emailBox'].forEach((k,i) => document.getElementById(k).value = Object.values(r)[i]);
         document.getElementById('searchBox').classList.add('d-none');
         document.getElementById('editForm').classList.remove('d-none');
-      }
+      } else { Swal.fire('ไม่พบรหัสพนักงาน', '', 'warning'); }
     }
 
     async function saveEdit() {
-      const d = { row: document.getElementById('rowNum').value, name: document.getElementById('nameBox').value, dept: document.getElementById('deptBox').value, sect: document.getElementById('sectBox').value };
+      const d = { row: document.getElementById('rowNum').value, name: document.getElementById('nameBox').value, dept: document.getElementById('deptBox').value, sect: document.getElementById('sectBox').value, email: document.getElementById('emailBox').value };
       const r = await callAPI({ action: 'updateUser', formData: d }, 'editSaveBtn');
-      if (r.success) { Swal.fire('สำเร็จ', 'อัปเดตข้อมูลแล้ว', 'success'); resetEdit(); }
+      if (r.success) { Swal.fire('สำเร็จ', 'บันทึกแล้ว', 'success'); resetEdit(); }
     }
-    function resetEdit() { document.getElementById('searchBox').classList.remove('d-none'); document.getElementById('editForm').classList.add('d-none'); }
+
+    function resetEdit() { document.getElementById('searchBox').classList.remove('d-none'); document.getElementById('editForm').classList.add('d-none'); document.getElementById('editId').value = ''; }
+    function resetAll() { stopCamera(); resetEdit(); document.getElementById('monResult').innerHTML = ''; document.getElementById('recordId').value = ''; document.getElementById('monId').value = ''; }
   </script>
 </body>
 </html>
