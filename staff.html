@@ -19,14 +19,15 @@
     .mode-card.active-out { border-color: #f44336; background: #ffebee; color: #f44336; font-weight: bold; }
     #canvas { width: 100%; border-radius: 16px; display: none; background: #000; margin-bottom: 15px; }
     .locked { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
-    .stats-card { background: white; border-radius: 12px; padding: 12px; text-align: center; border-bottom: 4px solid #1a237e; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .stats-card { background: white; border-radius: 12px; padding: 12px; text-align: center; border-bottom: 4px solid #1a237e; height: 100%; }
+    .progress { height: 8px; border-radius: 10px; }
+    .cursor-pointer { cursor: pointer; }
   </style>
 </head>
 <body>
 
   <script>
-    // URL ที่นายส่งมาล่าสุด
-    const API_URL = "https://script.google.com/macros/s/AKfycbwLFYOPa_7cyCF1hojRmxSqsPwSj1tRW4zqXaRuLcaMRIBe9j5-nOIZLFkP-LJrKJk/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbzgVVgwTFIyLaUQBek8NpMtsUGK2tpx9byWMPZxaxp43FvJ84mr9h5G7CmxNrPrHVBe/exec"; 
   </script>
 
   <div class="main-header text-center">
@@ -47,15 +48,14 @@
             <div class="col-6"><div id="btnIn" class="mode-card" onclick="setMode('checkin')"><i class="bi bi-box-arrow-in-right fs-2 d-block"></i>CHECK-IN</div></div>
             <div class="col-6"><div id="btnOut" class="mode-card" onclick="setMode('checkout')"><i class="bi bi-box-arrow-left fs-2 d-block"></i>CHECK-OUT</div></div>
           </div>
-
-          <div id="recordAction" class="locked">
+          <div id="recordAction" class="locked text-center">
             <canvas id="canvas"></canvas>
             <div class="d-flex gap-2 mb-3">
-              <button id="scanBtn" class="btn btn-primary w-100 py-3 fw-bold rounded-3" onclick="startCamera()">เปิดกล้องสแกน</button>
+              <button id="scanBtn" class="btn btn-primary w-100 py-3 fw-bold rounded-3" onclick="startCamera()">เปิดกล้องสแกน QR</button>
               <button id="stopScanBtn" class="btn btn-danger py-3 fw-bold rounded-3 d-none" onclick="stopCamera()">ปิดกล้อง</button>
             </div>
             <div class="input-group">
-              <input type="text" id="recordId" class="form-control text-center py-3 fs-5" placeholder="รหัสพนักงาน หรือสแกน QR">
+              <input type="text" id="recordId" class="form-control text-center py-3 fs-5" placeholder="รหัสพนักงาน">
               <button class="btn btn-dark px-4" onclick="submitRecord()">ยืนยัน</button>
             </div>
           </div>
@@ -63,13 +63,13 @@
       </div>
 
       <div class="tab-pane fade" id="monitorTab">
-        <div class="row row-cols-3 g-2 mb-4" id="statGrid">
-          </div>
+        <div class="row row-cols-3 g-2 mb-4" id="statGrid"></div>
         <div class="card p-4">
-          <h6 class="fw-bold mb-3">ตรวจสอบสถานะ / พิมพ์ AAA เพื่อดูทั้งหมด</h6>
+          <h6 class="fw-bold mb-3">ตรวจสอบสถานะรายบุคคล</h6>
           <div class="input-group mb-3">
             <input type="text" id="monId" class="form-control text-center py-2" placeholder="รหัสพนักงาน">
-            <button class="btn btn-primary" onclick="getMonitor()">ค้นหา</button>
+            <button class="btn btn-primary px-4" onclick="getMonitor()">ค้นหา</button>
+            <button class="btn btn-outline-secondary" onclick="resetMonitor()"><i class="bi bi-x-lg"></i></button>
           </div>
           <div id="monResult"></div>
         </div>
@@ -80,7 +80,7 @@
           <div id="searchBox">
             <h6 class="fw-bold mb-3">แก้ไขข้อมูลพนักงาน</h6>
             <div class="input-group">
-              <input type="text" id="editId" class="form-control text-center py-3" placeholder="กรอกรหัสพนักงาน">
+              <input type="text" id="editId" class="form-control text-center py-3" placeholder="รหัสพนักงาน">
               <button class="btn btn-primary" onclick="searchUser()">ค้นหา</button>
             </div>
           </div>
@@ -91,7 +91,7 @@
             <div class="mb-2"><label class="small text-muted">ฝ่าย</label><input type="text" id="sectBox" class="form-control"></div>
             <div class="mb-3"><label class="small text-muted">อีเมล</label><input type="email" id="emailBox" class="form-control"></div>
             <button class="btn btn-success w-100 py-3 mb-2" onclick="saveEdit()">บันทึกการเปลี่ยนแปลง</button>
-            <button class="btn btn-outline-secondary w-100" onclick="resetEdit()">ยกเลิก</button>
+            <button class="btn btn-outline-secondary w-100" onclick="resetEdit()">ยกเลิก (ESC)</button>
           </div>
         </div>
       </div>
@@ -110,6 +110,16 @@
     let canvas = canvasElement.getContext("2d");
     let scanning = false;
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const activeTab = document.querySelector('.tab-pane.active').id;
+        if (activeTab === 'recordTab') submitRecord();
+        if (activeTab === 'monitorTab') getMonitor();
+        if (activeTab === 'editTab') document.getElementById('editForm').classList.contains('d-none') ? searchUser() : saveEdit();
+      }
+      if (e.key === 'Escape') { stopCamera(); resetEdit(); resetMonitor(); }
+    });
+
     function setMode(mode) {
       currentMode = mode;
       document.getElementById('btnIn').className = 'mode-card' + (mode === 'checkin' ? ' active-in' : '');
@@ -118,30 +128,17 @@
       document.getElementById('recordId').focus();
     }
 
-    // ฟังก์ชันเรียก API แบบทนทาน (POST with GET Fallback)
     async function callAPI(payload) {
       try {
-        // ลองส่งแบบ POST ก่อน
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         return await response.json();
       } catch (err) {
-        // หากติด CORS หรือ POST ไม่ได้ ให้ลองส่งแบบ GET
-        console.warn("Switching to GET fallback...");
-        const params = new URLSearchParams({
-          action: payload.action,
-          id: payload.id || '',
-          type: payload.type || '',
-          formData: payload.formData ? JSON.stringify(payload.formData) : ''
-        });
+        const params = new URLSearchParams({ action: payload.action, id: payload.id || '', type: payload.type || '', formData: JSON.stringify(payload.formData || {}) });
         const res = await fetch(`${API_URL}?${params.toString()}`);
         return await res.json();
       }
     }
 
-    // กล้องระบบใหม่
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -169,13 +166,8 @@
         canvasElement.height = video.videoHeight;
         canvasElement.width = video.videoWidth;
         canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-        let imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-        let code = jsQR(imageData.data, imageData.width, imageData.height);
-        if (code) {
-          document.getElementById('recordId').value = code.data;
-          stopCamera();
-          submitRecord();
-        }
+        let code = jsQR(canvas.getImageData(0, 0, canvasElement.width, canvasElement.height).data, canvasElement.width, canvasElement.height);
+        if (code) { document.getElementById('recordId').value = code.data; stopCamera(); submitRecord(); }
       }
       if (scanning) requestAnimationFrame(tick);
     }
@@ -183,52 +175,55 @@
     async function submitRecord() {
       let id = document.getElementById('recordId').value.trim();
       if (!id || !currentMode) return;
-      Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังประมวลผล...', didOpen: () => Swal.showLoading() });
       const r = await callAPI({ action: 'staffAction', id: id, type: currentMode });
       if (r) {
-        Swal.fire({ icon: r.success ? 'success' : 'error', title: r.msg });
+        Swal.fire({ icon: r.success ? 'success' : 'error', title: r.success ? 'สำเร็จ' : 'ไม่สำเร็จ', text: r.msg });
         if (r.success) document.getElementById('recordId').value = '';
       }
     }
 
     async function updateStats() {
       try {
-        document.getElementById('statGrid').innerHTML = '<div class="col-12 text-center small">กำลังโหลดสถิติ...</div>';
         const res = await fetch(`${API_URL}?action=getStats`);
         const s = await res.json();
         let html = '';
         for (let i = 1; i <= 9; i++) {
-          html += `<div class="col"><div class="stats-card"><small class="d-block text-muted">ฐาน ${i}</small><span class="h5 fw-bold text-primary">${s["B"+i] || 0}</span></div></div>`;
+          let val = s["B"+i] || ""; // หากเป็นค่าว่างจากหลังบ้าน จะไม่แสดงเลข
+          html += `<div class="col"><div class="stats-card"><small class="d-block text-muted">ฐาน ${i}</small><span class="h5 fw-bold text-primary">${val}</span></div></div>`;
         }
         document.getElementById('statGrid').innerHTML = html;
-      } catch (e) { document.getElementById('statGrid').innerHTML = ''; }
+      } catch (e) {}
     }
+    setInterval(updateStats, 60000);
 
     async function getMonitor() {
       let id = document.getElementById('monId').value.trim();
       if (!id) return;
-      Swal.showLoading();
+      Swal.fire({ title: 'ค้นหา...', didOpen: () => Swal.showLoading() });
       const r = await callAPI({ action: 'monitor', id: id });
       Swal.close();
       if (r) {
         let html = '';
         if (r.type === 'AAA') {
-          html = `<div class="table-responsive"><table class="table table-sm mt-2 small"><thead><tr><th>พนักงาน</th><th>ความคืบหน้า</th></tr></thead><tbody>`;
+          html = `<div class="table-responsive"><table class="table table-hover mt-2 small"><thead><tr><th>รายชื่อพนักงาน</th><th class="text-end">ฐาน</th></tr></thead><tbody>`;
           r.list.forEach(p => {
-            html += `<tr><td>${p.name}</td><td><div class="progress" style="height:10px"><div class="progress-bar" style="width:${p.percent}%"></div></div></td></tr>`;
+            html += `<tr class="cursor-pointer" onclick="Swal.fire('${p.name}','แผนก: ${p.dept}<br>ฝ่าย: ${p.sect}<br>ผ่านแล้ว ${p.progress}/9 ฐาน','info')"><td>${p.name}</td><td class="text-end"><b>${p.progress}/9</b><div class="progress"><div class="progress-bar bg-success" style="width:${p.percent}%"></div></div></td></tr>`;
           });
           html += `</tbody></table></div>`;
         } else {
-          html = `<div class="alert alert-primary text-center mt-3"><h6>${r.name}</h6><div class="h3 fw-bold">${r.progress} / 9 ฐาน</div></div>`;
+          html = `<div class="alert alert-primary text-center mt-3"><h5>${r.name}</h5><div class="display-6 fw-bold">${r.progress} / 9 ฐาน</div></div>`;
         }
         document.getElementById('monResult').innerHTML = html;
       } else { Swal.fire('ไม่พบข้อมูล', '', 'error'); }
     }
 
+    function resetMonitor() { document.getElementById('monId').value = ''; document.getElementById('monResult').innerHTML = ''; }
+
     async function searchUser() {
       let id = document.getElementById('editId').value.trim();
       if (!id) return;
-      Swal.showLoading();
+      Swal.fire({ title: 'ค้นหา...', didOpen: () => Swal.showLoading() });
       const r = await callAPI({ action: 'searchUser', id: id });
       Swal.close();
       if (r) {
@@ -243,26 +238,13 @@
     }
 
     async function saveEdit() {
-      const formData = {
-        row: document.getElementById('rowNum').value,
-        name: document.getElementById('nameBox').value,
-        dept: document.getElementById('deptBox').value,
-        sect: document.getElementById('sectBox').value,
-        email: document.getElementById('emailBox').value
-      };
-      Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+      const formData = { row: document.getElementById('rowNum').value, name: document.getElementById('nameBox').value, dept: document.getElementById('deptBox').value, sect: document.getElementById('sectBox').value, email: document.getElementById('emailBox').value };
+      Swal.fire({ title: 'บันทึก...', didOpen: () => Swal.showLoading() });
       const r = await callAPI({ action: 'updateUser', formData: formData });
-      if (r && r.success) {
-        Swal.fire('สำเร็จ', 'อัปเดตข้อมูลแล้ว', 'success');
-        resetEdit();
-      }
+      if (r && r.success) { Swal.fire('สำเร็จ', 'อัปเดตข้อมูลแล้ว', 'success'); resetEdit(); }
     }
 
-    function resetEdit() {
-      document.getElementById('searchBox').classList.remove('d-none');
-      document.getElementById('editForm').classList.add('d-none');
-      document.getElementById('editId').value = '';
-    }
+    function resetEdit() { document.getElementById('searchBox').classList.remove('d-none'); document.getElementById('editForm').classList.add('d-none'); document.getElementById('editId').value = ''; }
   </script>
 </body>
 </html>
