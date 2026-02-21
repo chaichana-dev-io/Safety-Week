@@ -36,7 +36,7 @@
     
     @keyframes glowing-yellow { 0% { box-shadow: 0 0 5px #ffc107; } 50% { box-shadow: 0 0 18px #ffc107; } 100% { box-shadow: 0 0 5px #ffc107; } }
 
-    #reader { width: 100%; border-radius: 25px; overflow: hidden; display: none; margin-bottom: 20px; }
+    #reader { width: 100%; border-radius: 25px; overflow: hidden; display: none; margin-bottom: 20px; border: 2px solid #0d6efd; }
     .btn-action-main { background: #1a237e; color: white; border-radius: 18px; padding: 18px; width: 100%; font-weight: 700; font-size: 1.1rem; border: none; box-shadow: 0 10px 20px rgba(26,35,126,0.15); transition: 0.3s; }
     .btn-action-main:active { transform: scale(0.98); }
     .btn-action-success { background: #198754; }
@@ -99,29 +99,30 @@
 </div>
 
 <script>
+  // *** สำคัญ: ตรวจสอบ URL นี้ให้เป็นตัวล่าสุดของนายที่ได้จาก New Deployment ***
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzDOtewQEsL8FK0AW0gKbzO3mowqN09sczShb1go_2WN5XOrTz2Bylpexu5--3404qQ/exec";
+  
   let activeUser = null;
   let scanner = null;
 
-  // ฟังก์ชันคุยกับ Backend (GitHub -> Google Sheets)
- async function callBackend(data) {
-  try {
-    // สร้าง URL พร้อมพารามิเตอร์ (เช่น ?action=login&empId=123456)
-    const params = new URLSearchParams(data).toString();
-    const targetUrl = `${WEB_APP_URL}?${params}`;
+  // ฟังก์ชันคุยกับ Backend ผ่าน GET (เลี่ยงปัญหา CORS)
+  async function callBackend(data) {
+    try {
+      const params = new URLSearchParams(data).toString();
+      const targetUrl = `${WEB_APP_URL}?${params}`;
+      
+      const response = await fetch(targetUrl, { 
+        method: "GET",
+        mode: "cors" 
+      });
 
-    const response = await fetch(targetUrl, {
-      method: "GET", // เปลี่ยนเป็น GET
-      mode: "cors"   // ลองใช้ cors หรือถ้าไม่ได้ให้เอาบรรทัดนี้ออก
-    });
-
-    if (!response.ok) throw new Error("Network response was not ok");
-    return await response.json();
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    throw err;
+      if (!response.ok) throw new Error("Network response was not ok");
+      return await response.json();
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      throw err;
+    }
   }
-}
 
   async function loginProcess() {
     const idValue = document.getElementById('inputEmpId').value;
@@ -142,7 +143,7 @@
         Swal.fire('ไม่พบข้อมูล', 'โปรดตรวจสอบรหัสพนักงาน หรือติดต่อเจ้าหน้าที่', 'warning');
       }
     } catch (err) {
-      Swal.fire('การเชื่อมต่อผิดพลาด', 'กรุณาตรวจสอบอินเทอร์เน็ตของนาย', 'error');
+      Swal.fire('การเชื่อมต่อผิดพลาด', 'กรุณาตรวจสอบการตั้งค่า Deployment ใน Google Script', 'error');
     }
   }
 
@@ -159,7 +160,6 @@
     let targetBaseId = "";
 
     if (doneCount === 9) {
-      // เคส: ผ่านครบทุกฐาน
       document.getElementById('targetLabel').style.display = 'none';
       document.getElementById('nextBaseLabel').innerText = "ยินดีด้วยคุณผ่านครบทุกฐานแล้ว";
       document.getElementById('nextBaseLabel').className = "target-name text-success";
@@ -168,11 +168,16 @@
       document.getElementById('mainBtn').classList.add('btn-action-success');
       targetBaseId = "FINISH";
     } else {
-      // เคส: ยังไม่ครบ
       targetBaseId = doneCount === 0 ? activeUser.startBase : "Base" + (doneCount + 1);
-      document.getElementById('nextBaseLabel').innerText = targetBaseId.replace("Base", "ฐานที่ ");
+      
+      // ดึงชื่อไทยจากข้อมูลที่ส่งมาจาก Backend
+      let thaiName = (activeUser.baseNames && activeUser.baseNames[targetBaseId]) 
+                     ? activeUser.baseNames[targetBaseId] 
+                     : targetBaseId.replace("Base", "ฐานที่ ");
+
+      document.getElementById('nextBaseLabel').innerText = thaiName;
       document.getElementById('nextBaseId').innerText = "ID: " + targetBaseId;
-      document.getElementById('mainBtn').innerHTML = '<i class="bi bi-camera-fill me-2"></i> สแกน QR ฐานกิจกรรม';
+      document.getElementById('mainBtn').innerHTML = `<i class="bi bi-camera-fill me-2"></i> สแกน QR ${thaiName}`;
       document.getElementById('mainBtn').classList.remove('btn-action-success');
     }
 
@@ -207,7 +212,8 @@
       if (!scanner) scanner = new Html5Qrcode("reader");
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
         closeCamera();
-        askBasePassword(txt);
+        // Clean ข้อมูลจาก QR ก่อนส่งต่อ
+        askBasePassword(txt.trim());
       }).catch(err => Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'));
     } else { closeCamera(); }
   }
@@ -221,32 +227,44 @@
   }
 
   async function askBasePassword(baseId) {
+    // ดึงชื่อฐานภาษาไทยมาโชว์ในหัวข้อ
+    const baseNameDisplay = (activeUser.baseNames && activeUser.baseNames[baseId]) ? activeUser.baseNames[baseId] : baseId;
+
     const { value: password } = await Swal.fire({
-      title: 'รหัสผ่านฐาน ' + baseId.replace("Base", ""),
+      title: 'รหัสผ่าน: ' + baseNameDisplay,
+      html: `<p class="text-muted small">กรุณากรอกรหัสผ่านเพื่อบันทึกการเข้าฐาน</p>`,
       input: 'password',
-      inputPlaceholder: 'กรอกรหัสผ่านจากกรรมการ',
+      inputPlaceholder: 'กรอกรหัสจากกรรมการประจำฐาน',
       showCancelButton: true,
       confirmButtonText: 'ยืนยัน',
-      cancelButtonText: 'ยกเลิก'
+      cancelButtonText: 'ยกเลิก',
+      inputAttributes: { autocapitalize: 'off', autocorrect: 'off' }
     });
 
     if (password) {
       Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
+        // ส่งค่าผ่าน GET พร้อม Clean ข้อมูล
         const res = await callBackend({ 
           action: 'recordBaseScan', 
           empId: activeUser.id, 
           baseId: baseId, 
-          password: password 
+          password: password.trim() 
         });
         
         if(res.status === 'success') {
-          Swal.fire({ icon: 'success', title: 'ผ่านฐานสำเร็จ!', timer: 2000, showConfirmButton: false }).then(() => loginProcess());
+          Swal.fire({ 
+            icon: 'success', 
+            title: 'บันทึกสำเร็จ!', 
+            text: res.message, 
+            timer: 2000, 
+            showConfirmButton: false 
+          }).then(() => loginProcess()); // โหลดสถานะใหม่เพื่ออัปเดตหน้า Dashboard
         } else {
-          Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาสอบถามกรรมการประจำฐานอีกครั้ง', 'error');
+          Swal.fire('ไม่สำเร็จ', res.message || 'ข้อมูลไม่ถูกต้อง', 'warning');
         }
       } catch (e) {
-        Swal.fire('Error', 'บันทึกไม่สำเร็จ', 'error');
+        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
       }
     }
   }
@@ -254,7 +272,7 @@
   async function generateCertificate() {
     Swal.fire({
       title: 'ยืนยันการสร้างใบประกาศ',
-      text: "ระบบจะสร้างไฟล์ PDF ในชื่อของคุณ",
+      text: "ระบบจะสร้างไฟล์ PDF และบันทึกลงในระบบ",
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'สร้างไฟล์',
@@ -272,7 +290,7 @@
             Swal.fire('ไม่สำเร็จ', res.message, 'error');
           }
         } catch (e) {
-          Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเพื่อสร้าง PDF ได้', 'error');
+          Swal.fire('Error', 'ระบบสร้าง PDF มีปัญหาการเชื่อมต่อ', 'error');
         }
       }
     });
