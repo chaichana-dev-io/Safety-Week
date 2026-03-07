@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SAFETY WEEK 2026</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
@@ -36,7 +36,10 @@
     
     @keyframes glowing-yellow { 0% { box-shadow: 0 0 5px #ffc107; } 50% { box-shadow: 0 0 18px #ffc107; } 100% { box-shadow: 0 0 5px #ffc107; } }
 
-    #reader { width: 100%; border-radius: 25px; overflow: hidden; display: none; margin-bottom: 20px; border: 2px solid #0d6efd; }
+    /* ปรับแต่งส่วนสแกนกล้อง */
+    #camera-section { display: none; margin-bottom: 20px; }
+    #reader { width: 100%; border-radius: 25px; overflow: hidden; border: 2px solid #0d6efd; background: #000; }
+    
     .btn-action-main { background: #1a237e; color: white; border-radius: 18px; padding: 18px; width: 100%; font-weight: 700; font-size: 1.1rem; border: none; box-shadow: 0 10px 20px rgba(26,35,126,0.15); transition: 0.3s; }
     .btn-action-main:active { transform: scale(0.98); }
     .btn-action-success { background: #198754; }
@@ -88,34 +91,36 @@
         <div class="base-grid" id="gridContainer"></div>
       </div>
 
-      <div id="reader"></div>
+      <div id="camera-section">
+        <div id="reader"></div>
+        <button class="btn btn-danger mt-3 w-100 rounded-pill fw-bold py-2 shadow-sm" onclick="closeCamera()">
+          <i class="bi bi-x-circle-fill me-1"></i> ปิดกล้อง / ยกเลิกการสแกน
+        </button>
+      </div>
+
       <button class="btn-action-main" id="mainBtn" onclick="handleMainAction()">
         <i class="bi bi-camera-fill me-2"></i> สแกน QR ฐานกิจกรรม
       </button>
 
-      <div class="btn-logout" onclick="userLogout()">ออกจากระบบ</div>
+      <div class="btn-logout" onclick="userLogout()"><i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ</div>
     </div>
   </div>
 </div>
 
 <script>
-  // *** สำคัญ: ตรวจสอบ URL นี้ให้เป็นตัวล่าสุดของนายที่ได้จาก New Deployment ***
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx5gbKdQg0vqQgvMiQx6IGxNShxPeH7jVOOH47ahzN-TssjnSN4iq6WQhTRK3-jqbCm6A/exec";
+  // *** URL ของ Web App ฝั่ง User (ชี้ไปที่ Code.gs ที่เราเพิ่งทำกันไป) ***
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfSGjJ2beaNtyuZYQIYLcKtCzMyI2KS_4P1VNPF1W1Qe-KrFVbTzO5FeDjF6dKvo-UPQ/exec";
   
   let activeUser = null;
   let scanner = null;
+  let targetBaseId = ""; // เก็บค่าฐานถัดไปเอาไว้ตรวจสอบการสแกน
 
-  // ฟังก์ชันคุยกับ Backend ผ่าน GET (เลี่ยงปัญหา CORS)
+  // ฟังก์ชันคุยกับ Backend
   async function callBackend(data) {
     try {
       const params = new URLSearchParams(data).toString();
       const targetUrl = `${WEB_APP_URL}?${params}`;
-      
-      const response = await fetch(targetUrl, { 
-        method: "GET",
-        mode: "cors" 
-      });
-
+      const response = await fetch(targetUrl, { method: "GET", mode: "cors" });
       if (!response.ok) throw new Error("Network response was not ok");
       return await response.json();
     } catch (err) {
@@ -138,12 +143,12 @@
         activeUser = res;
         buildDashboard();
       } else if(res && res.error === "not_checked_in") {
-        Swal.fire('ยังไม่ได้เช็คอิน', 'กรุณาเช็คอินที่จุดลงทะเบียนเพื่อเปิดสิทธิ์เข้าใช้งาน', 'error');
+        Swal.fire('ยังไม่ได้เช็คอิน', 'กรุณาเช็คอินที่จุดลงทะเบียนหน้างาน เพื่อเปิดสิทธิ์เข้าใช้งาน', 'error');
       } else {
         Swal.fire('ไม่พบข้อมูล', 'โปรดตรวจสอบรหัสพนักงาน หรือติดต่อเจ้าหน้าที่', 'warning');
       }
     } catch (err) {
-      Swal.fire('การเชื่อมต่อผิดพลาด', 'กรุณาตรวจสอบการตั้งค่า Deployment ใน Google Script', 'error');
+      Swal.fire('การเชื่อมต่อผิดพลาด', 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'error');
     }
   }
 
@@ -154,10 +159,9 @@
     
     document.getElementById('pNameDisplay').innerText = activeUser.name;
     document.getElementById('pIdDisplay').innerText = " [" + activeUser.id + "]";
-    document.getElementById('pDeptDisplay').innerText = activeUser.dept;
+    document.getElementById('pDeptDisplay').innerText = `${activeUser.dept} / ${activeUser.sect}`;
     
     let doneCount = activeUser.doneBases.length;
-    let targetBaseId = "";
 
     if (doneCount === 9) {
       document.getElementById('targetLabel').style.display = 'none';
@@ -168,13 +172,18 @@
       document.getElementById('mainBtn').classList.add('btn-action-success');
       targetBaseId = "FINISH";
     } else {
-      targetBaseId = doneCount === 0 ? activeUser.startBase : "Base" + (doneCount + 1);
+      // โลจิกคำนวณฐานถัดไป (Modulo แบบวนลูป 1-9)
+      let startNum = parseInt(activeUser.startBase.replace("Base", "")) || 1;
+      let nextNum = ((startNum - 1 + doneCount) % 9) + 1;
+      targetBaseId = "Base" + nextNum;
       
-      // ดึงชื่อไทยจากข้อมูลที่ส่งมาจาก Backend
+      // ดึงชื่อไทย
       let thaiName = (activeUser.baseNames && activeUser.baseNames[targetBaseId]) 
                      ? activeUser.baseNames[targetBaseId] 
                      : targetBaseId.replace("Base", "ฐานที่ ");
 
+      document.getElementById('targetLabel').style.display = 'inline-block';
+      document.getElementById('nextBaseLabel').className = "target-name text-primary";
       document.getElementById('nextBaseLabel').innerText = thaiName;
       document.getElementById('nextBaseId').innerText = "ID: " + targetBaseId;
       document.getElementById('mainBtn').innerHTML = `<i class="bi bi-camera-fill me-2"></i> สแกน QR ${thaiName}`;
@@ -187,11 +196,11 @@
     drawGrid(targetBaseId);
   }
 
-  function drawGrid(targetBaseId) {
+  function drawGrid(targetId) {
     let html = '';
     for(let i=1; i<=9; i++) {
       let currentId = 'Base' + i;
-      let state = activeUser.doneBases.includes(currentId) ? 'done' : (currentId === targetBaseId ? 'next' : '');
+      let state = activeUser.doneBases.includes(currentId) ? 'done' : (currentId === targetId ? 'next' : '');
       html += `<div class="base-item ${state}">${i}</div>`;
     }
     document.getElementById('gridContainer').innerHTML = html;
@@ -206,45 +215,70 @@
   }
 
   function toggleCamera() {
-    const div = document.getElementById('reader');
-    if(div.style.display === 'none') {
-      div.style.display = 'block';
+    const camSection = document.getElementById('camera-section');
+    const mainBtn = document.getElementById('mainBtn');
+
+    if(camSection.style.display === 'none' || camSection.style.display === '') {
+      camSection.style.display = 'block';
+      mainBtn.style.display = 'none'; // ซ่อนปุ่มหลักตอนเปิดกล้อง
+      
       if (!scanner) scanner = new Html5Qrcode("reader");
+      
+      // ให้กล้องทำงาน
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+        let scannedId = txt.trim();
+        
+        // Anti-Cheat: เช็คว่าสแกนถูกฐานเป้าหมายหรือไม่
+        if (scannedId !== targetBaseId) {
+          Swal.fire('สแกนผิดฐาน!', 'กรุณาไปที่ "' + document.getElementById('nextBaseLabel').innerText + '" ก่อนครับ', 'warning');
+          return; // เด้งเตือนแต่ยังไม่ปิดกล้อง ให้หันไปสแกนใหม่ได้
+        }
+
+        // ถ้าสแกนถูก ปิดกล้องทันทีและถามรหัสผ่าน
         closeCamera();
-        // Clean ข้อมูลจาก QR ก่อนส่งต่อ
-        askBasePassword(txt.trim());
-      }).catch(err => Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'));
-    } else { closeCamera(); }
+        askBasePassword(scannedId);
+
+      }).catch(err => {
+        closeCamera();
+        Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง', 'error');
+      });
+    } else { 
+      closeCamera(); 
+    }
   }
 
   function closeCamera() {
+    const camSection = document.getElementById('camera-section');
+    const mainBtn = document.getElementById('mainBtn');
+    
     if(scanner && scanner.isScanning) {
-      scanner.stop().then(() => { document.getElementById('reader').style.display = 'none'; });
+      scanner.stop().then(() => { 
+        camSection.style.display = 'none'; 
+        mainBtn.style.display = 'block';
+      });
     } else {
-      document.getElementById('reader').style.display = 'none';
+      camSection.style.display = 'none';
+      mainBtn.style.display = 'block';
     }
   }
 
   async function askBasePassword(baseId) {
-    // ดึงชื่อฐานภาษาไทยมาโชว์ในหัวข้อ
     const baseNameDisplay = (activeUser.baseNames && activeUser.baseNames[baseId]) ? activeUser.baseNames[baseId] : baseId;
 
     const { value: password } = await Swal.fire({
       title: 'รหัสผ่าน: ' + baseNameDisplay,
-      html: `<p class="text-muted small">กรุณากรอกรหัสผ่านเพื่อบันทึกการเข้าฐาน</p>`,
+      html: `<p class="text-muted small mb-0">กรุณากรอกรหัสผ่านเพื่อบันทึกการเข้าฐาน</p>`,
       input: 'password',
-      inputPlaceholder: 'กรอกรหัสจากกรรมการประจำฐาน',
+      inputPlaceholder: 'กรอกรหัสจากกรรมการ',
       showCancelButton: true,
-      confirmButtonText: 'ยืนยัน',
-      cancelButtonText: 'ยกเลิก',
+      confirmButtonText: 'ยืนยัน (Enter)',
+      cancelButtonText: 'ยกเลิก (ESC)',
       inputAttributes: { autocapitalize: 'off', autocorrect: 'off' }
     });
 
     if (password) {
-      Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        // ส่งค่าผ่าน GET พร้อม Clean ข้อมูล
         const res = await callBackend({ 
           action: 'recordBaseScan', 
           empId: activeUser.id, 
@@ -253,15 +287,10 @@
         });
         
         if(res.status === 'success') {
-          Swal.fire({ 
-            icon: 'success', 
-            title: 'บันทึกสำเร็จ!', 
-            text: res.message, 
-            timer: 2000, 
-            showConfirmButton: false 
-          }).then(() => loginProcess()); // โหลดสถานะใหม่เพื่ออัปเดตหน้า Dashboard
+          // โหลดข้อมูลหลังบ้านเงียบๆ แล้วเด้ง Popup บอกฐานถัดไป
+          await updateDashboardAfterScan();
         } else {
-          Swal.fire('ไม่สำเร็จ', res.message || 'ข้อมูลไม่ถูกต้อง', 'warning');
+          Swal.fire('ไม่สำเร็จ', res.message, 'warning');
         }
       } catch (e) {
         Swal.fire('Error', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
@@ -269,21 +298,66 @@
     }
   }
 
+  // --- ฟังก์ชันใหม่: อัปเดตข้อมูลเงียบๆ และบอกทางไปฐานถัดไป ---
+  async function updateDashboardAfterScan() {
+    try {
+      const res = await callBackend({ action: 'getEmployeeStatus', empId: activeUser.id });
+      if(res && res.success) {
+        activeUser = res;
+        buildDashboard(); // สร้างหน้าจอใหม่ (ขอบทองย้ายไปฐานถัดไปแล้ว)
+
+        if (activeUser.doneBases.length === 9) {
+          Swal.fire({
+            icon: 'success',
+            title: 'ภารกิจเสร็จสิ้น!',
+            text: 'ยินดีด้วยคุณผ่านครบทุกฐานแล้ว กรุณากดรับใบประกาศได้เลยครับ',
+            confirmButtonText: 'รับทราบ'
+          });
+        } else {
+          // ดึงชื่อฐานเป้าหมายใหม่ที่เพิ่งคำนวณเสร็จมาโชว์
+          const nextTargetName = document.getElementById('nextBaseLabel').innerText;
+          Swal.fire({
+            icon: 'success',
+            title: 'บันทึกสำเร็จ!',
+            text: `ต่อไปคุณไป: ${nextTargetName}`,
+            confirmButtonText: 'ไปลุยกันต่อ!'
+          });
+        }
+      }
+    } catch(e) {
+      Swal.fire('Error', 'อัปเดตข้อมูลล้มเหลว กรุณารีเฟรชหน้าจอ', 'error');
+    }
+  }
+
   async function generateCertificate() {
     Swal.fire({
-      title: 'ยืนยันการสร้างใบประกาศ',
-      text: "ระบบจะสร้างไฟล์ PDF และบันทึกลงในระบบ",
-      icon: 'question',
+      title: 'ตรวจสอบข้อมูลก่อนสร้างใบประกาศ',
+      html: `
+        <div class="p-3 bg-light border rounded-3 mb-3 text-start">
+          <b>ชื่อ-สกุล:</b> <span class="text-primary">${activeUser.name}</span><br>
+          <b>รหัสพนักงาน:</b> ${activeUser.id}<br>
+          <b>แผนก:</b> ${activeUser.dept} / ${activeUser.sect}
+        </div>
+        <span class="text-danger fw-bold small"><i class="bi bi-exclamation-triangle-fill"></i> หากชื่อสะกดผิด กรุณากดยกเลิกและแจ้ง Staff ทันที</span>
+      `,
+      icon: 'info',
       showCancelButton: true,
-      confirmButtonText: 'สร้างไฟล์',
+      confirmButtonColor: '#198754',
+      cancelButtonColor: '#dc3545',
+      confirmButtonText: 'ข้อมูลถูกต้อง (สร้าง PDF)',
       cancelButtonText: 'ยกเลิก'
     }).then(async (result) => {
       if (result.isConfirmed) {
-        Swal.fire({ title: 'กำลังสร้าง PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'ระบบกำลังจัดทำใบประกาศ...', html: 'กรุณารอสักครู่ (ประมาณ 5-10 วินาที)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         try {
           const res = await callBackend({ action: 'generateCertificate', empId: activeUser.id });
           if(res.success) {
-            Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: 'สร้างใบประกาศเรียบร้อยแล้ว' }).then(() => {
+            Swal.fire({ 
+              icon: 'success', 
+              title: 'สำเร็จ!', 
+              text: 'สร้างใบประกาศเรียบร้อยแล้ว ท่านสามารถดาวน์โหลดได้ทันที',
+              confirmButtonText: 'ดาวน์โหลด / เปิดดูใบประกาศ'
+            }).then(() => {
               window.open(res.url, '_blank');
             });
           } else {
@@ -298,10 +372,10 @@
 
   function userLogout() {
     activeUser = null;
+    targetBaseId = "";
     document.getElementById('inputEmpId').value = '';
     document.getElementById('dashboard-page').style.display = 'none';
     document.getElementById('login-page').style.display = 'block';
-    document.getElementById('subHeaderText').innerText = "กรุณาเข้าสู่ระบบเพื่อเริ่มภารกิจ";
     if(scanner) closeCamera();
   }
 </script>
