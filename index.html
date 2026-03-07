@@ -36,7 +36,6 @@
     
     @keyframes glowing-yellow { 0% { box-shadow: 0 0 5px #ffc107; } 50% { box-shadow: 0 0 18px #ffc107; } 100% { box-shadow: 0 0 5px #ffc107; } }
 
-    /* ปรับแต่งส่วนสแกนกล้อง */
     #camera-section { display: none; margin-bottom: 20px; }
     #reader { width: 100%; border-radius: 25px; overflow: hidden; border: 2px solid #0d6efd; background: #000; }
     
@@ -108,14 +107,13 @@
 </div>
 
 <script>
-  // *** URL ของ Web App ฝั่ง User (ชี้ไปที่ Code.gs ที่เราเพิ่งทำกันไป) ***
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfSGjJ2beaNtyuZYQIYLcKtCzMyI2KS_4P1VNPF1W1Qe-KrFVbTzO5FeDjF6dKvo-UPQ/exec";
+  // *** URL ของ Web App ฝั่ง User (อย่าลืมใส่ URL ตัวใหม่ล่าสุดของนายที่ได้จาก New Deployment) ***
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfbBMOt0PQDiOs-RlUK_icNaSZf7dXi1EvSEv2oTq6wejKPgVFqBbNRpZQrRBTsGyd-w/exec";
   
   let activeUser = null;
   let scanner = null;
-  let targetBaseId = ""; // เก็บค่าฐานถัดไปเอาไว้ตรวจสอบการสแกน
+  let targetBaseId = ""; 
 
-  // ฟังก์ชันคุยกับ Backend
   async function callBackend(data) {
     try {
       const params = new URLSearchParams(data).toString();
@@ -168,16 +166,21 @@
       document.getElementById('nextBaseLabel').innerText = "ยินดีด้วยคุณผ่านครบทุกฐานแล้ว";
       document.getElementById('nextBaseLabel').className = "target-name text-success";
       document.getElementById('nextBaseId').innerText = "ภารกิจเสร็จสิ้น!";
-      document.getElementById('mainBtn').innerHTML = '<i class="bi bi-patch-check-fill me-2"></i> สร้างใบประกาศ (PDF)';
+      
+      // โลจิกใหม่: เช็คว่ามีลิงก์แล้วหรือยัง
+      if (activeUser.certLink) {
+        document.getElementById('mainBtn').innerHTML = '<i class="bi bi-file-earmark-pdf-fill me-2"></i> ดูใบประกาศ';
+      } else {
+        document.getElementById('mainBtn').innerHTML = '<i class="bi bi-patch-check-fill me-2"></i> สร้างใบประกาศ (PDF)';
+      }
+      
       document.getElementById('mainBtn').classList.add('btn-action-success');
       targetBaseId = "FINISH";
     } else {
-      // โลจิกคำนวณฐานถัดไป (Modulo แบบวนลูป 1-9)
       let startNum = parseInt(activeUser.startBase.replace("Base", "")) || 1;
       let nextNum = ((startNum - 1 + doneCount) % 9) + 1;
       targetBaseId = "Base" + nextNum;
       
-      // ดึงชื่อไทย
       let thaiName = (activeUser.baseNames && activeUser.baseNames[targetBaseId]) 
                      ? activeUser.baseNames[targetBaseId] 
                      : targetBaseId.replace("Base", "ฐานที่ ");
@@ -208,7 +211,12 @@
 
   function handleMainAction() {
     if (activeUser.doneBases.length === 9) {
-      generateCertificate();
+      // ถัามีลิงก์แล้ว ให้เปิดดูเลย ถ้ายังไม่มี ให้รันฟังก์ชันสร้าง
+      if (activeUser.certLink) {
+        window.open(activeUser.certLink, '_blank');
+      } else {
+        generateCertificate();
+      }
     } else {
       toggleCamera();
     }
@@ -220,21 +228,18 @@
 
     if(camSection.style.display === 'none' || camSection.style.display === '') {
       camSection.style.display = 'block';
-      mainBtn.style.display = 'none'; // ซ่อนปุ่มหลักตอนเปิดกล้อง
+      mainBtn.style.display = 'none'; 
       
       if (!scanner) scanner = new Html5Qrcode("reader");
       
-      // ให้กล้องทำงาน
       scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
         let scannedId = txt.trim();
         
-        // Anti-Cheat: เช็คว่าสแกนถูกฐานเป้าหมายหรือไม่
         if (scannedId !== targetBaseId) {
           Swal.fire('สแกนผิดฐาน!', 'กรุณาไปที่ "' + document.getElementById('nextBaseLabel').innerText + '" ก่อนครับ', 'warning');
-          return; // เด้งเตือนแต่ยังไม่ปิดกล้อง ให้หันไปสแกนใหม่ได้
+          return; 
         }
 
-        // ถ้าสแกนถูก ปิดกล้องทันทีและถามรหัสผ่าน
         closeCamera();
         askBasePassword(scannedId);
 
@@ -287,7 +292,6 @@
         });
         
         if(res.status === 'success') {
-          // โหลดข้อมูลหลังบ้านเงียบๆ แล้วเด้ง Popup บอกฐานถัดไป
           await updateDashboardAfterScan();
         } else {
           Swal.fire('ไม่สำเร็จ', res.message, 'warning');
@@ -298,23 +302,21 @@
     }
   }
 
-  // --- ฟังก์ชันใหม่: อัปเดตข้อมูลเงียบๆ และบอกทางไปฐานถัดไป ---
   async function updateDashboardAfterScan() {
     try {
       const res = await callBackend({ action: 'getEmployeeStatus', empId: activeUser.id });
       if(res && res.success) {
         activeUser = res;
-        buildDashboard(); // สร้างหน้าจอใหม่ (ขอบทองย้ายไปฐานถัดไปแล้ว)
+        buildDashboard(); 
 
         if (activeUser.doneBases.length === 9) {
           Swal.fire({
             icon: 'success',
             title: 'ภารกิจเสร็จสิ้น!',
-            text: 'ยินดีด้วยคุณผ่านครบทุกฐานแล้ว กรุณากดรับใบประกาศได้เลยครับ',
+            text: 'ยินดีด้วยคุณผ่านครบทุกฐานแล้ว กรุณากดปุ่มเพื่อรับใบประกาศได้เลยครับ',
             confirmButtonText: 'รับทราบ'
           });
         } else {
-          // ดึงชื่อฐานเป้าหมายใหม่ที่เพิ่งคำนวณเสร็จมาโชว์
           const nextTargetName = document.getElementById('nextBaseLabel').innerText;
           Swal.fire({
             icon: 'success',
@@ -352,11 +354,15 @@
         try {
           const res = await callBackend({ action: 'generateCertificate', empId: activeUser.id });
           if(res.success) {
+            // เมื่อสร้างเสร็จ อัปเดตลิงก์ลง activeUser ทันที แล้วอัปเดตปุ่ม
+            activeUser.certLink = res.url;
+            buildDashboard(); 
+
             Swal.fire({ 
               icon: 'success', 
               title: 'สำเร็จ!', 
-              text: 'สร้างใบประกาศเรียบร้อยแล้ว ท่านสามารถดาวน์โหลดได้ทันที',
-              confirmButtonText: 'ดาวน์โหลด / เปิดดูใบประกาศ'
+              text: 'สร้างใบประกาศเรียบร้อยแล้ว ท่านสามารถดูใบประกาศได้ทันที',
+              confirmButtonText: 'เปิดดูใบประกาศ'
             }).then(() => {
               window.open(res.url, '_blank');
             });
