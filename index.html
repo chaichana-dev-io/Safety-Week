@@ -28,7 +28,7 @@
     .target-label { background: #0d6efd; color: white; padding: 3px 15px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; display: inline-block; margin-bottom: 10px; }
     .target-name { font-size: 1.8rem; font-weight: 800; color: #0d6efd; margin: 0; }
     
-    .base-grid-wrapper { display: flex; justify-content: center; margin: 25px 0; }
+    .base-grid-wrapper { display: flex; justify-content: center; margin: 25px 0 15px 0; }
     .base-grid { display: grid; grid-template-columns: repeat(3, 60px); gap: 15px; }
     .base-item { width: 60px; height: 60px; border-radius: 15px; background: #eef0f7; color: #bdc3d7; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.5rem; border: 3px solid transparent; transition: 0.3s; }
     .base-item.done { background: #198754 !important; color: #ffc107 !important; border: none; }
@@ -42,7 +42,7 @@
     .btn-action-main { background: #1a237e; color: white; border-radius: 18px; padding: 18px; width: 100%; font-weight: 700; font-size: 1.1rem; border: none; box-shadow: 0 10px 20px rgba(26,35,126,0.15); transition: 0.3s; }
     .btn-action-main:active { transform: scale(0.98); }
     .btn-action-success { background: #198754; }
-    .btn-logout { display: block; text-align: center; color: #bdc3d7; text-decoration: none; margin-top: 25px; font-size: 0.9rem; cursor: pointer; }
+    .btn-logout { display: block; text-align: center; color: #bdc3d7; text-decoration: none; margin-top: 15px; font-size: 0.9rem; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -86,20 +86,22 @@
         </div>
       </div>
 
-      <div class="base-grid-wrapper">
-        <div class="base-grid" id="gridContainer"></div>
-      </div>
+      <div class="mt-4 mb-2">
+        <div id="camera-section">
+          <div id="reader"></div>
+          <button class="btn btn-danger mt-3 w-100 rounded-pill fw-bold py-2 shadow-sm" onclick="closeCamera()">
+            <i class="bi bi-x-circle-fill me-1"></i> ปิดกล้อง / ยกเลิกการสแกน
+          </button>
+        </div>
 
-      <div id="camera-section">
-        <div id="reader"></div>
-        <button class="btn btn-danger mt-3 w-100 rounded-pill fw-bold py-2 shadow-sm" onclick="closeCamera()">
-          <i class="bi bi-x-circle-fill me-1"></i> ปิดกล้อง / ยกเลิกการสแกน
+        <button class="btn-action-main" id="mainBtn" onclick="handleMainAction()">
+          <i class="bi bi-camera-fill me-2"></i> สแกน QR ฐานกิจกรรม
         </button>
       </div>
 
-      <button class="btn-action-main" id="mainBtn" onclick="handleMainAction()">
-        <i class="bi bi-camera-fill me-2"></i> สแกน QR ฐานกิจกรรม
-      </button>
+      <div class="base-grid-wrapper">
+        <div class="base-grid" id="gridContainer"></div>
+      </div>
 
       <div class="btn-logout" onclick="userLogout()"><i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ</div>
     </div>
@@ -107,7 +109,7 @@
 </div>
 
 <script>
-  // *** URL ของ Web App ฝั่ง User (อย่าลืมใส่ URL ตัวใหม่ล่าสุดของนายที่ได้จาก New Deployment) ***
+  // *** URL ของ Web App ฝั่ง User ***
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfbBMOt0PQDiOs-RlUK_icNaSZf7dXi1EvSEv2oTq6wejKPgVFqBbNRpZQrRBTsGyd-w/exec";
   
   let activeUser = null;
@@ -167,7 +169,6 @@
       document.getElementById('nextBaseLabel').className = "target-name text-success";
       document.getElementById('nextBaseId').innerText = "ภารกิจเสร็จสิ้น!";
       
-      // โลจิกใหม่: เช็คว่ามีลิงก์แล้วหรือยัง
       if (activeUser.certLink) {
         document.getElementById('mainBtn').innerHTML = '<i class="bi bi-file-earmark-pdf-fill me-2"></i> ดูใบประกาศ';
       } else {
@@ -211,7 +212,6 @@
 
   function handleMainAction() {
     if (activeUser.doneBases.length === 9) {
-      // ถัามีลิงก์แล้ว ให้เปิดดูเลย ถ้ายังไม่มี ให้รันฟังก์ชันสร้าง
       if (activeUser.certLink) {
         window.open(activeUser.certLink, '_blank');
       } else {
@@ -354,7 +354,6 @@
         try {
           const res = await callBackend({ action: 'generateCertificate', empId: activeUser.id });
           if(res.success) {
-            // เมื่อสร้างเสร็จ อัปเดตลิงก์ลง activeUser ทันที แล้วอัปเดตปุ่ม
             activeUser.certLink = res.url;
             buildDashboard(); 
 
